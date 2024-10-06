@@ -2,15 +2,15 @@ require("dotenv").config();
 const session = require('express-session')
 const morgan = require("morgan");
 
-const clientID = process.env.CLIENT_ID;
-const clientSecret = process.env.CLIENT_SECRET;
+const spotifyClientID = process.env.SPOTIFY_CLIENT_ID;
+const spotifyClientSecret = process.env.SPOTIFY_CLIENT_SECRET;
 const express = require("express");
-const redirect_uri = "http://localhost:5001/redirect";
+const redirect_uri = process.env.SPOTIFY_REDIRECT;
 const app = express();
 
 // Middleware to parse JSON bodies
 app.use(session({
-  secret: clientSecret,
+  secret: spotifyClientSecret,
   resave: false,
   saveUninitialized: true,
   cookie: {
@@ -29,7 +29,7 @@ app.get("/login", (req, res) => {
   const scope = "user-follow-read";
   const params = new URLSearchParams({
     response_type: "code",
-    client_id: clientID,
+    client_id: spotifyClientID,
     scope: scope,
     redirect_uri: redirect_uri,
     state: state,
@@ -38,7 +38,7 @@ app.get("/login", (req, res) => {
   res.redirect(`https://accounts.spotify.com/authorize?${params.toString()}`);
 });
 
-app.get("/redirect", async (req, res) => {
+app.get("/redirect", async (req, res, next) => {
   const { state, code, error } = req.query;
 
   if (state !== req.session.state) {
@@ -64,8 +64,8 @@ app.get("/redirect", async (req, res) => {
     grant_type: 'authorization_code',
     code: code,
     redirect_uri: redirect_uri,
-    client_id: clientID,
-    client_secret: clientSecret,
+    client_id: spotifyClientID,
+    client_secret: spotifyClientSecret,
   });
 
   try {
@@ -84,17 +84,33 @@ app.get("/redirect", async (req, res) => {
       return null
     }
 
-    console.log('Response data:', data);
+    // console.log('Response data:', data);
     const {access_token, refresh_token} = data;
-    
+    console.log(access_token)
     req.session.accessToken = access_token;
     req.session.refreshToken = refresh_token;
+    // save accessToken + refreshToken in DB
+
 
     // Redirect the user or fetch Spotify data
-    res.send(`Access Token: ${access_token}`);
+    //res.send(`Access Token: ${access_token}`);
   } catch (err) {
     console.error('Error fetching tokens:', err);
     res.status(500).send('Error during token exchange');
+  }
+
+  try {
+    const response = await fetch('https://api.spotify.com/v1/me/following?type=artist', {
+      headers: {
+        Authorization: `Bearer ${req.session.accessToken}`
+      }
+    })
+    const data = await response.json();
+    console.log(data);
+    res.send(data)
+  } catch (err) {
+    console.error('Error fetching artists: ', err);
+    res.status(500).json({ error: 'Failed to fetch artists' });
   }
 });
 
