@@ -84,16 +84,11 @@ app.get("/redirect", async (req, res, next) => {
       return null
     }
 
-    // console.log('Response data:', data);
     const {access_token, refresh_token} = data;
-    console.log(access_token)
     req.session.accessToken = access_token;
     req.session.refreshToken = refresh_token;
     // save accessToken + refreshToken in DB
 
-
-    // Redirect the user or fetch Spotify data
-    //res.send(`Access Token: ${access_token}`);
   } catch (err) {
     console.error('Error fetching tokens:', err);
     res.status(500).send('Error during token exchange');
@@ -106,11 +101,22 @@ app.get("/redirect", async (req, res, next) => {
       }
     })
     const data = await response.json();
-    console.log(data);
-    res.send(data)
+    const artists = data.artists.items.map(artist => encodeURIComponent(artist.name));
+    const artistNames = artists.join(','); // unused for now
+    req.session.ticketmasterRequest = `${process.env.TICKETMASTER_URL}?apikey=${process.env.TICKETMASTER_API_KEY}&postalCode=33610&keyword=Greeicy`;
+    
   } catch (err) {
     console.error('Error fetching artists: ', err);
     res.status(500).json({ error: 'Failed to fetch artists' });
+  }
+
+  try {
+    const response = await fetch(req.session.ticketmasterRequest);
+    const data = await response.json();
+    res.send(data)
+  } catch (err) {
+    console.error('Error fetching events: ', err);
+    res.status(500).json({ error: 'Failed to fetch events' });
   }
 });
 
