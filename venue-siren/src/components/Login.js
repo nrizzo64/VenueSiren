@@ -1,8 +1,22 @@
-import React from 'react';
+import React from "react";
 
 const Login = () => {
-  const handleLogin = () => {
-    window.location.href = 'http://localhost:5001/login';  // Redirect to backend for Spotify OAuth
+
+  const handleLogin = async () => {
+    try {
+      const response = await fetch("http://localhost:5001/login", {
+        method: "POST",
+        credentials: "include",
+      });
+      if (response.ok) {
+        const body = await response.json()
+        window.location.href = body.redirectUrl
+      } else {
+        console.error("Login failed");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    }
   };
 
   return (

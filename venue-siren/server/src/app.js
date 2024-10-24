@@ -1,134 +1,39 @@
 require("dotenv").config();
+
 const session = require('express-session')
 const morgan = require("morgan");
-
-const spotifyClientID = process.env.SPOTIFY_CLIENT_ID;
-const spotifyClientSecret = process.env.SPOTIFY_CLIENT_SECRET;
 const express = require("express");
-const redirect_uri = process.env.SPOTIFY_REDIRECT;
+const cors = require("cors");
 const app = express();
+
+const loginRouter = require("./login/login.router.js")
+const spotifyRedirectRouter = require("./login/spotify_redirect/spotifyRedirect.router");
+
 
 // Middleware to parse JSON bodies
 app.use(session({
-  secret: spotifyClientSecret,
+  secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: true,
   cookie: {
     httpOnly: true, 
     sameSite: 'strict',
-    secure: process.env.NODE_ENV === "prod" 
+    secure: process.env.NODE_ENV === "prod",
+    maxAge: 24 * 60 * 60 * 1000 // 1 day
   }
 }))
+
+const corsOptions = {
+  origin: 'http://localhost:3000', // Only allow requests from your frontend
+  credentials: true,               // Allow cookies to be sent
+  methods: ['GET', 'POST'],        // Specify allowed methods
+  allowedHeaders: ['Content-Type'], // Specify allowed headers
+};
+app.use(cors(corsOptions));
+
 app.use(express.json());
 app.use(morgan("dev"));
-
-app.get("/login", (req, res) => {
-  const state = generateRandomString(32);
-  req.session.state = state;
-
-  const scope = "user-follow-read";
-  const params = new URLSearchParams({
-    response_type: "code",
-    client_id: spotifyClientID,
-    scope: scope,
-    redirect_uri: redirect_uri,
-    state: state,
-  });
-
-  res.redirect(`https://accounts.spotify.com/authorize?${params.toString()}`);
-});
-
-app.get("/redirect", async (req, res, next) => {
-  const { state, code, error } = req.query;
-
-  if (state !== req.session.state) {
-    return res.status(403).send("Invalid state parameter");
-  }
-
-  if(error === "access_denied") {
-    return res.send("Authorization was cancelled. Please try again.");
-  }
-
-  req.session.state = null;
-
-  if (error === "access_denied") {
-    return res.send("Authorization was cancelled. Please try again.");
-  }
-
-  if (!code) {
-    return res.status(400).send('Authorization code is missing');
-  }
-
-  // Prepare data for token exchange
-  const params = new URLSearchParams({
-    grant_type: 'authorization_code',
-    code: code,
-    redirect_uri: redirect_uri,
-    client_id: spotifyClientID,
-    client_secret: spotifyClientSecret,
-  });
-
-  try {
-    const response = await fetch('https://accounts.spotify.com/api/token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: params.toString(),
-    });
-
-    const data = await response.json();
-
-    if(!response.ok) {
-      console.log('Error exchanging code for access_token:', data);
-      return null
-    }
-
-    const {access_token, refresh_token} = data;
-    req.session.accessToken = access_token;
-    req.session.refreshToken = refresh_token;
-    // save accessToken + refreshToken in DB
-
-  } catch (err) {
-    console.error('Error fetching tokens:', err);
-    res.status(500).send('Error during token exchange');
-  }
-
-  try {
-    const response = await fetch('https://api.spotify.com/v1/me/following?type=artist', {
-      headers: {
-        Authorization: `Bearer ${req.session.accessToken}`
-      }
-    })
-    const data = await response.json();
-    const artists = data.artists.items.map(artist => encodeURIComponent(artist.name));
-    const artistNames = artists.join(','); // unused for now
-    req.session.ticketmasterRequest = `${process.env.TICKETMASTER_URL}?apikey=${process.env.TICKETMASTER_API_KEY}&postalCode=33610&keyword=Greeicy`;
-    
-  } catch (err) {
-    console.error('Error fetching artists: ', err);
-    res.status(500).json({ error: 'Failed to fetch artists' });
-  }
-
-  try {
-    const response = await fetch(req.session.ticketmasterRequest);
-    const data = await response.json();
-    res.send(data)
-  } catch (err) {
-    console.error('Error fetching events: ', err);
-    res.status(500).json({ error: 'Failed to fetch events' });
-  }
-});
-
-function generateRandomString(length) {
-  const characters =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  let result = "";
-  const charactersLength = characters.length;
-  for (let i = 0; i < length; i++) {
-    result += characters.charAt(Math.floor(Math.random() * charactersLength));
-  }
-  return result;
-}
+app.use("/login", loginRouter)
+app.use("/spotify-redirect", spotifyRedirectRouter)
 
 module.exports = app;
