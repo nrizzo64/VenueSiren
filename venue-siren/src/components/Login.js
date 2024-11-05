@@ -1,7 +1,6 @@
 import React from "react";
 
 const Login = () => {
-
   const handleLogin = async () => {
     try {
       const response = await fetch("http://localhost:5001/login", {
@@ -9,8 +8,8 @@ const Login = () => {
         credentials: "include",
       });
       if (response.ok) {
-        const body = await response.json()
-        window.location.href = body.redirectUrl
+        const body = await response.json();
+        window.location.href = body.redirectUrl;
       } else {
         console.error("Login failed");
       }

@@ -26,13 +26,12 @@ function generateRandomString(req, _res, next) {
 }
 
 async function login(req, res, _next) {
-  const scope = "user-follow-read";
   const params = new URLSearchParams({
     client_id: process.env.SPOTIFY_CLIENT_ID,
     response_type: "code",
     redirect_uri: process.env.SPOTIFY_REDIRECT,
     state: req.session.state,
-    scope: scope,
+    scope: "user-follow-read",
     show_dialog: false,
   });
 
@@ -40,5 +39,5 @@ async function login(req, res, _next) {
 }
 
 module.exports = {
-  login: [checkSessionId, generateRandomString, login],
+  login: [generateRandomString, login],
 };

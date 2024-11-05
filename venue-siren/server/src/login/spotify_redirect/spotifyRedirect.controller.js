@@ -20,10 +20,11 @@ function handleRedirect(req, res, next) {
 }
 
 async function exchangeTokens(req, res, next) {
+  const { code } = req.query;
   const params = new URLSearchParams({
     grant_type: "authorization_code",
     code: code,
-    redirect_uri: redirect_uri,
+    redirect_uri: process.env.SPOTIFY_REDIRECT,
     client_id: process.env.SPOTIFY_CLIENT_ID,
     client_secret: process.env.SPOTIFY_CLIENT_SECRET,
   });
@@ -54,7 +55,7 @@ async function exchangeTokens(req, res, next) {
     res.status(500).send("Error during token exchange");
   }
 
-  next();
+  res.status(200).json({redirectUrl: `http://localhost:3000/`});
 }
 
 async function fetchArtists(req, res, _next) {
@@ -89,5 +90,5 @@ async function fetchArtists(req, res, _next) {
 }
 
 module.exports = {
-  recieveRedirect: [handleRedirect, exchangeTokens, fetchArtists],
+  recieveRedirect: [handleRedirect, exchangeTokens],
 };
