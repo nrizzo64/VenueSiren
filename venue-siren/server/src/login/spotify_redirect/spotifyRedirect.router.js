@@ -8,6 +8,6 @@ const router = require("express").Router()
 const controller = require("./spotifyRedirect.controller.js")
 
 router.route("/")
-    .get(controller.recieveRedirect)
+    .post(controller.recieveRedirect)
 
 module.exports = router;
