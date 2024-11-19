@@ -5,10 +5,10 @@ const morgan = require("morgan");
 const express = require("express");
 const cors = require("cors");
 const app = express();
+const validateSession = require("./helper/sessionValidation.js")
 
 const loginRouter = require("./login/login.router.js")
 const spotifyRedirectRouter = require("./login/spotify_redirect/spotifyRedirect.router");
-
 
 // Middleware to parse JSON bodies
 app.use(session({
@@ -32,8 +32,8 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 app.use(express.json());
+app.use(validateSession);
 app.use(morgan("dev"));
 app.use("/login", loginRouter)
 app.use("/spotify-redirect", spotifyRedirectRouter)
-
 module.exports = app;

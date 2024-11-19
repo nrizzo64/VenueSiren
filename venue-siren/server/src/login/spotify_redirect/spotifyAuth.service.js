@@ -11,7 +11,7 @@ const pool = new Pool({
 });
 
 async function saveUser(spotifyUsername, sessionId, sessionsIdTimeStamp, accessToken, refreshToken) {
-
+    
 }
 
 async function fetchUser() {
