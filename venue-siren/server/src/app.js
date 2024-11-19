@@ -30,10 +30,10 @@ const corsOptions = {
   allowedHeaders: ['Content-Type'], // Specify allowed headers
 };
 app.use(cors(corsOptions));
+app.use(morgan("dev"));
 
 app.use(express.json());
 app.use(validateSession);
-app.use(morgan("dev"));
 app.use("/login", loginRouter)
 app.use("/spotify-redirect", spotifyRedirectRouter)
 module.exports = app;

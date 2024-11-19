@@ -1,7 +1,6 @@
 /**
  * Defines a helper function that validates the session for each request
  */
-const { login } = require("../login/login.controller")
 const { Pool } = require("pg");
 
 const sessionsTable = "sessions";
@@ -13,6 +12,8 @@ const pool = new Pool({
   password: "",
   port: 5432,
 });
+
+const loginPath = `/login`;
 
 async function fetchSession(sessionId) {
   try {
@@ -30,34 +31,49 @@ async function fetchSession(sessionId) {
 
 // export
 async function validateSession(req, res, next) {
-  if (req.path === '/spotify-redirect') {
-    console.log("skipping cookie parsing")
-    next();
+  /* redirect to login middleware to refresh session if session cookie is missing, malformed, or expired */
+  // const fullUrl = `${req.protocol}://${req.get("host")}${req.originalUrl}`;
+  // console.log(fullUrl); // e.g., 'http://localhost:3000/some/path?query=param'
+
+  // !!!!!! request is coming from http://localhost:5001/login
+  // console.log(`validateSession: ${fullUrl}`);
+  if (
+    req.path === "/spotify-redirect" ||
+    req.path === "/spotify-redirect/" ||
+    req.path === "/login" ||
+    req.path === "/login/"
+  ) {
+    console.log(`\tskipping cookie parsing`);
+    // client path - skipping cookie parsing because the user is in the middle of the auth flow and the session cookie has yet to be set by the server
+
+    return next();
   }
 
   // Parse cookies
   const cookies = req.headers.cookie;
   if (!cookies) {
-    return login(req, res, next)
+    console.log("no cookies: redirecting user to login");
+    return res.redirect(loginPath);
   }
   const cookieObj = Object.fromEntries(
     cookies.split("; ").map((cookie) => cookie.split("="))
   );
-  
+
   // Parse sessionId
   const sessionId = cookieObj.sessionId;
   if (!sessionId) {
-    return login[0](req, res, next)
+    console.log("no sessionId: redirecting user to login");
+    return res.redirect(loginPath);
   }
-  
+
   try {
     const session = await fetchSession(sessionId);
     if (session.length === 0) {
-      return login(req, res, next)
+      console.log("no session in db: redirecting user to login");
+      return res.redirect(loginPath);
     }
 
     next();
-
   } catch (error) {
     console.error("Session validation error:", error);
     next(error); // Pass the error to Express’s error handler

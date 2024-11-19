@@ -6,9 +6,10 @@ const Login = () => {
   
   useEffect(() => {
     const handleLogin = async () => {
-      if(hasRun.current) return;
+      if(hasRun.current === true) return;
       hasRun.current = true;
       setError(null);
+      console.log(`Login.js / handleLogin() - sending login request`)
       try {
         const response = await fetch("http://localhost:5001/login", {
           method: "POST",
@@ -27,6 +28,7 @@ const Login = () => {
     };
 
     handleLogin();
+
   }, []);
 
   return (

@@ -5,10 +5,8 @@
  */
 
 const router = require("express").Router();
- const controller = require("./login.controller.js");
+const controller = require("./login.controller.js");
 
- router.route("/")
-    .post(controller.login)
-    
+router.route("").post(controller.login);
 
 module.exports = router;
