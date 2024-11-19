@@ -31,6 +31,10 @@ const SpotifyCallback = () => {
         if (response.ok) {
           console.log("successfully authenticated");
         }
+
+        const body = await response.json()
+        window.location.href = body.redirectUrl;
+        
       } catch (error) {
         console.error("Error:", error);
       }
