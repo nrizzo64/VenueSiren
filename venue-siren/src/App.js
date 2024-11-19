@@ -5,9 +5,9 @@
 
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import Dashboard from './components/Dashboard';
 import Login from './components/Login';
 import Events from './components/Events';
+import SpotifyCallback from './components/SpotifyCallback';
 
 
 function App() {
@@ -15,9 +15,9 @@ function App() {
     <Router>
       <div className="App">
         <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/login" element={<Login />} />
+          <Route path="/" element={<Login />} />
           <Route path="/events" element={<Events />} />
+          <Route path="/spotify-redirect" element={<SpotifyCallback />} />
         </Routes>
       </div>
     </Router>
