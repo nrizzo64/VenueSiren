@@ -15,7 +15,7 @@ function App() {
     <Router>
       <div className="App">
         <Routes>
-          <Route path="/" element={<Login />} />
+          <Route path="/login" element={<Login />} />
           <Route path="/events" element={<Events />} />
           <Route path="/spotify-redirect" element={<SpotifyCallback />} />
         </Routes>

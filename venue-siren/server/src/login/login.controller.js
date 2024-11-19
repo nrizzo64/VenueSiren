@@ -1,6 +1,7 @@
 const asyncErrorBoundary = require("../errors/asyncErrorBoundary");
 
 function generateState(req, _res, next) {
+  console.log(`login.controller / generateState()`);
   const length = 32;
   const characters =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -16,6 +17,7 @@ function generateState(req, _res, next) {
 }
 
 async function login(req, res, _next) {
+  console.log(`login.controller / login()`);
   const params = new URLSearchParams({
     client_id: process.env.SPOTIFY_CLIENT_ID,
     response_type: "code",
@@ -25,7 +27,11 @@ async function login(req, res, _next) {
     show_dialog: false,
   });
 
-  return res.status(200).json({redirectUrl: `https://accounts.spotify.com/authorize?${params.toString()}`});
+  return res
+    .status(200)
+    .json({
+      redirectUrl: `https://accounts.spotify.com/authorize?${params.toString()}`,
+    });
 }
 
 module.exports = {

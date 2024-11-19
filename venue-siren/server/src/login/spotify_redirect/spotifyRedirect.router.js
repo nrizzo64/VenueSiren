@@ -4,10 +4,10 @@
  * @type {Router}
  */
 
-const router = require("express").Router()
-const controller = require("./spotifyRedirect.controller.js")
+const router = require("express").Router();
+const controller = require("./spotifyRedirect.controller.js");
 
-router.route("/")
-    .post(controller.recieveRedirect)
+router.route("")
+    .post(controller.recieveRedirect);
 
 module.exports = router;
