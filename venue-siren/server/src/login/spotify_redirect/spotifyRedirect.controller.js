@@ -55,21 +55,14 @@ async function exchangeTokens(req, res, next) {
       body: params.toString(),
     });
 
-    console.log("Received response from Spotify:", response.status);
     const data = await response.json();
-    console.log(data);
 
     if (!response.ok) {
       console.error("Error exchanging code for access_token:", data);
       return res.status(500).send("Error during token exchange");
     }
-    // store tokens
-    const { access_token, refresh_token, token_type, expires_in } = data;
-    req.accessToken = access_token;
-    req.refreshToken = refresh_token;
-    console.log("tokens acquired");
-    // store sessionId
-    req.session.sessionId = generateSessionId();
+    
+    req.spotifyTokenData = data;  // { access_token, refresh_token, token_type, expires_in }
     next();
   } catch (error) {
     console.error(error.stack);
@@ -78,16 +71,59 @@ async function exchangeTokens(req, res, next) {
   }
 }
 
-function storeData(req, res, _next) {
-  console.log(`spotifyRedirect.controller / storeData()`);
-  console.log("setting headers");
-  res.setHeader('Set-Cookie', `sessionId=${req.session.sessionId}; HttpOnly; Secure; SameSite=Strict; Max-Age=${24 * 60 * 60}`);
+async function fetchSpotifyUserName(req, res, next) {
+  console.log(req.spotifyTokenData)
+  try {
+    const response = await fetch("https://api.spotify.com/v1/me", {
+      method: "GET",
+      headers: {
+        'Authorization': `Bearer ${req.spotifyTokenData.access_token}`, // Include the access token
+        'Content-Type': 'application/json',
+      },
+    });
 
-  return res.status(200).json({redirectUrl: `http://localhost:3000/events`});
+    console.log("Received response from Spotify:", response.status);
+    const data = await response.json();
+    console.log(data);
 
-  // save tokens
+    if (!response.ok) {
+      console.error("Error while fetching Spotify UserName");
+      return res.status(500).send("Error during Spotify UserName fetching");
+    }
+
+    req.spotifyUserName = data.id
+
+    next();
+  } catch (error) {
+    console.error(error.stack);
+    return res.status(500).send("Error while fetching Spotify UserName");
+  }
+}
+
+function storeData(req, _res, next) {
+  req.sessionId = generateSessionId()
+  const accessTokenExpiryDate = Date.now() + req.spotifyTokenData.expires_in * 1000; // in Milliseconds 
+  service.saveUser(req.spotifyUserName, req.sessionId, Date.now(), req.spotifyTokenData.access_token, req.spotifyTokenData.refresh_token, accessTokenExpiryDate)
+  next()
+}
+
+function storeCookie(req, res, _next) {
+  res.setHeader(
+    "Set-Cookie",
+    `sessionId=${req.sessionId}; HttpOnly; Secure; SameSite=Strict; Max-Age=${
+      24 * 60 * 60
+    }`
+  );
+
+  return res.status(200).json({ redirectUrl: `http://localhost:3000/events` });
 }
 
 module.exports = {
-  recieveRedirect: [handleRedirect, exchangeTokens, storeData],
+  recieveRedirect: [
+    handleRedirect,
+    exchangeTokens,
+    fetchSpotifyUserName,
+    storeData,
+    storeCookie
+  ],
 };

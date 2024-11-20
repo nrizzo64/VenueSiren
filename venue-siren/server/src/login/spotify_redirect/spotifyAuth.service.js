@@ -10,8 +10,12 @@ const pool = new Pool({
   port: 5432,
 });
 
-async function saveUser(spotifyUsername, sessionId, sessionsIdTimeStamp, accessToken, refreshToken) {
-    
+async function saveUser(spotifyUsername, sessionId, sessionsIdTimeStamp, accessToken, refreshToken, accessTokenExpiryDate) {
+    try {
+      // TODO
+    } catch (error) {
+      console.error("Error executing query", error.stack);
+    }
 }
 
 async function fetchUser() {
@@ -22,8 +26,6 @@ async function fetchUser() {
   } catch (error) {
     console.error("Error executing query", error.stack);
     return []
-  } finally {
-    await pool.end(); // Close the pool connection after query
   }
 }
 
