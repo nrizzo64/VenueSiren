@@ -1,13 +1,16 @@
 const service = require("./spotifyAuth.service");
 
 // helper function
-function generateSessionId() {
-  return ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, (c) =>
-    (
-      c ^
-      (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (c / 4)))
-    ).toString(16)
-  );
+function generateUUIDv4() {
+  // Simple 16-character random string
+  const randomBytes = crypto.getRandomValues(new Uint8Array(8));
+
+  // Convert each byte to a hexadecimal string and join them
+  const sessionId = Array.from(randomBytes)
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+
+  return sessionId;
 }
 
 function handleRedirect(req, res, next) {
@@ -61,8 +64,12 @@ async function exchangeTokens(req, res, next) {
       console.error("Error exchanging code for access_token:", data);
       return res.status(500).send("Error during token exchange");
     }
-    
-    req.spotifyTokenData = data;  // { access_token, refresh_token, token_type, expires_in }
+
+    req.spotifyTokenData = data; // { access_token, refresh_token, token_type, expires_in }
+
+    req.spotifyTokenData.access_token_expiry_date =
+      (new Date(Date.now() + req.spotifyTokenData.expires_in * 1000).toISOString());
+
     next();
   } catch (error) {
     console.error(error.stack);
@@ -72,13 +79,13 @@ async function exchangeTokens(req, res, next) {
 }
 
 async function fetchSpotifyUserName(req, res, next) {
-  console.log(req.spotifyTokenData)
+  console.log(req.spotifyTokenData);
   try {
     const response = await fetch("https://api.spotify.com/v1/me", {
       method: "GET",
       headers: {
-        'Authorization': `Bearer ${req.spotifyTokenData.access_token}`, // Include the access token
-        'Content-Type': 'application/json',
+        Authorization: `Bearer ${req.spotifyTokenData.access_token}`, // Include the access token
+        "Content-Type": "application/json",
       },
     });
 
@@ -91,7 +98,7 @@ async function fetchSpotifyUserName(req, res, next) {
       return res.status(500).send("Error during Spotify UserName fetching");
     }
 
-    req.spotifyUserName = data.id
+    req.spotifyUserId = data.id;
 
     next();
   } catch (error) {
@@ -100,11 +107,14 @@ async function fetchSpotifyUserName(req, res, next) {
   }
 }
 
-function storeData(req, _res, next) {
-  req.sessionId = generateSessionId()
-  const accessTokenExpiryDate = Date.now() + req.spotifyTokenData.expires_in * 1000; // in Milliseconds 
-  service.saveUser(req.spotifyUserName, req.sessionId, Date.now(), req.spotifyTokenData.access_token, req.spotifyTokenData.refresh_token, accessTokenExpiryDate)
-  next()
+function saveUser(req, _res, next) {
+  const userData = {
+    spotifyUserId: req.spotifyUserId,
+    sessionId: generateUUIDv4(),
+    tokenData: req.spotifyTokenData,
+  };
+  service.saveUser(userData);
+  next();
 }
 
 function storeCookie(req, res, _next) {
@@ -123,7 +133,7 @@ module.exports = {
     handleRedirect,
     exchangeTokens,
     fetchSpotifyUserName,
-    storeData,
-    storeCookie
+    saveUser,
+    storeCookie,
   ],
 };
