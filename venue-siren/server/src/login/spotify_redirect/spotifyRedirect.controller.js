@@ -115,6 +115,8 @@ async function saveUser(req, _res, next) {
   const sessionId = Array.from(randomBytes)
     .map((byte) => byte.toString(16).padStart(2, "0"))
     .join("");
+  
+  req.sessionId = sessionId;
 
   const userData = {
     userId: req.userId || null,

@@ -15,7 +15,7 @@ const pool = new Pool({
 
 const loginPath = `/login`;
 
-async function fetchSession(sessionId) {
+async function getSession(sessionId) {
   try {
     const result = await pool.query(
       `SELECT * FROM ${sessionsTable} WHERE session_id = $1`,
@@ -32,11 +32,7 @@ async function fetchSession(sessionId) {
 // export
 async function validateSession(req, res, next) {
   /* redirect to login middleware to refresh session if session cookie is missing, malformed, or expired */
-  // const fullUrl = `${req.protocol}://${req.get("host")}${req.originalUrl}`;
-  // console.log(fullUrl); // e.g., 'http://localhost:3000/some/path?query=param'
 
-  // !!!!!! request is coming from http://localhost:5001/login
-  // console.log(`validateSession: ${fullUrl}`);
   if (
     req.path === "/spotify-redirect" ||
     req.path === "/spotify-redirect/" ||
@@ -67,7 +63,7 @@ async function validateSession(req, res, next) {
   }
 
   try {
-    const session = await fetchSession(sessionId);
+    const session = await getSession(sessionId);
     if (session.length === 0) {
       console.log("no session in db: redirecting user to login");
       return res.redirect(loginPath);
