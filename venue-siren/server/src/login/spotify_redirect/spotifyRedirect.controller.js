@@ -1,18 +1,5 @@
 const service = require("./spotifyAuth.service");
 
-// helper function
-function generateUUIDv4() {
-  // Simple 16-character random string
-  const randomBytes = crypto.getRandomValues(new Uint8Array(8));
-
-  // Convert each byte to a hexadecimal string and join them
-  const sessionId = Array.from(randomBytes)
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
-
-  return sessionId;
-}
-
 function handleRedirect(req, res, next) {
   const { state, code, error } = req.body;
   const { signed_state } = req.signedCookies; 
@@ -80,8 +67,7 @@ async function exchangeTokens(req, res, next) {
   }
 }
 
-async function fetchSpotifyUserName(req, res, next) {
-  console.log(req.spotifyTokenData);
+async function getSpotifyUserName(req, res, next) {
   try {
     const response = await fetch("https://api.spotify.com/v1/me", {
       method: "GET",
@@ -91,9 +77,7 @@ async function fetchSpotifyUserName(req, res, next) {
       },
     });
 
-    console.log("Received response from Spotify:", response.status);
     const data = await response.json();
-    console.log(data);
 
     if (!response.ok) {
       console.error("Error while fetching Spotify UserName");
@@ -109,14 +93,42 @@ async function fetchSpotifyUserName(req, res, next) {
   }
 }
 
-function saveUser(req, _res, next) {
+async function checkUserExists(req, res, next) {
+  const { spotifyUserId } = req;
+
+  try {
+    const user = await service.getUserId(spotifyUserId)
+    if (user) {
+      req.userId = user.user_id
+    }
+
+    next();
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function saveUser(req, _res, next) {
+  // Simple 16-character random string
+  const randomBytes = crypto.getRandomValues(new Uint8Array(8));
+  // Convert each byte to a hexadecimal string and join them
+  const sessionId = Array.from(randomBytes)
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+
   const userData = {
+    userId: req.userId || null,
     spotifyUserId: req.spotifyUserId,
-    sessionId: generateUUIDv4(),
+    sessionId: sessionId,
     tokenData: req.spotifyTokenData,
   };
-  service.saveUser(userData);
-  next();
+
+  try {
+    service.saveUser(userData);
+    next();
+  } catch (error) {
+    next(error)
+  }
 }
 
 function storeCookie(req, res, _next) {
@@ -134,7 +146,8 @@ module.exports = {
   recieveRedirect: [
     handleRedirect,
     exchangeTokens,
-    fetchSpotifyUserName,
+    getSpotifyUserName,
+    checkUserExists,
     saveUser,
     storeCookie,
   ],
