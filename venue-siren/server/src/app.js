@@ -1,6 +1,6 @@
 require("dotenv").config();
 
-const session = require('express-session')
+const cookieParser = require('cookie-parser');
 const morgan = require("morgan");
 const express = require("express");
 const cors = require("cors");
@@ -10,30 +10,21 @@ const validateSession = require("./helper/sessionValidation.js")
 const loginRouter = require("./login/login.router.js")
 const spotifyRedirectRouter = require("./login/spotify_redirect/spotifyRedirect.router");
 
-// Middleware to parse JSON bodies
-app.use(session({
-  secret: process.env.SESSION_SECRET,
-  resave: false,
-  saveUninitialized: true,
-  cookie: {
-    httpOnly: true, 
-    sameSite: 'strict',
-    secure: process.env.NODE_ENV === "prod",
-    maxAge: 24 * 60 * 60 * 1000 // 1 day
-  }
-}))
-
 const corsOptions = {
   origin: 'http://localhost:3000', // Only allow requests from your frontend
   credentials: true,               // Allow cookies to be sent
   methods: ['GET', 'POST'],        // Specify allowed methods
   allowedHeaders: ['Content-Type'], // Specify allowed headers
 };
+
+// Use cookie-parser middleware
+app.use(cookieParser(process.env.COOKIE_SIGNING_KEY));
+
 app.use(cors(corsOptions));
 app.use(morgan("dev"));
 
 app.use(express.json());
-app.use(validateSession);
+//app.use(validateSession);
 app.use("/login", loginRouter)
 app.use("/spotify-redirect", spotifyRedirectRouter)
 module.exports = app;

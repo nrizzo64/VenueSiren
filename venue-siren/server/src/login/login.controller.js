@@ -1,28 +1,21 @@
-const asyncErrorBoundary = require("../errors/asyncErrorBoundary");
+const crypto = require('crypto');
 
-function generateState(req, _res, next) {
-  console.log(`login.controller / generateState()`);
-  const length = 32;
-  const characters =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  let randomString = "";
-  const charactersLength = characters.length;
-  for (let i = 0; i < length; i++) {
-    randomString += characters.charAt(
-      Math.floor(Math.random() * charactersLength)
-    );
-  }
-  req.session.state = randomString;
-  next();
-}
+async function login(_req, res, _next) {
+  const state = crypto.randomBytes(16).toString('hex');
 
-async function login(req, res, _next) {
-  console.log(`login.controller / login()`);
+  // store signed state in client cookie
+  res.cookie('signed_state', state, {
+    signed: true,
+    httpOnly: true,
+    secure: process.env.NODE_ENV === `prod`,
+    maxAge: 300000 // 5 minutes
+  });
+
   const params = new URLSearchParams({
     client_id: process.env.SPOTIFY_CLIENT_ID,
     response_type: "code",
     redirect_uri: process.env.SPOTIFY_REDIRECT,
-    state: req.session.state,
+    state: state,
     scope: "user-follow-read user-read-private",
     show_dialog: false,
   });
@@ -35,5 +28,5 @@ async function login(req, res, _next) {
 }
 
 module.exports = {
-  login: [generateState, login],
+  login: [login],
 };

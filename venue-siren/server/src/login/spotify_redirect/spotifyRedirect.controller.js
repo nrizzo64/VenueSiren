@@ -14,11 +14,15 @@ function generateUUIDv4() {
 }
 
 function handleRedirect(req, res, next) {
-  console.log(`spotifyRedirect.controller / handleRedirect()`);
   const { state, code, error } = req.body;
+  const { signed_state } = req.signedCookies; 
+  if (!state || !signed_state) {
+    return res.status(403).send("Invalid state parameters");
+  }
 
-  if (state !== req.session.state) {
-    return res.status(403).send("Invalid state parameter");
+  if(state !== signed_state) {
+    console.log("State received back from Spotify does not match original state")
+    return res.status(403).send("Invalid state parameters")
   }
 
   if (error === "access_denied") {
@@ -31,12 +35,10 @@ function handleRedirect(req, res, next) {
     return res.status(403).send("Authorization code is missing");
   }
 
-  req.session.state = null;
   next();
 }
 
 async function exchangeTokens(req, res, next) {
-  console.log(`spotifyRedirect.controller / exchangeTokens()`);
   const { code } = req.body;
 
   const params = new URLSearchParams({
