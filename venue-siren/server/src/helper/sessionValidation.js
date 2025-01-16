@@ -29,16 +29,11 @@ async function getSession(sessionId) {
   }
 }
 
+
 // export
 async function validateSession(req, res, next) {
   /* redirect to login middleware to refresh session if session cookie is missing, malformed, or expired */
-
-  if (
-    req.path === "/spotify-redirect" ||
-    req.path === "/spotify-redirect/" ||
-    req.path === "/login" ||
-    req.path === "/login/"
-  ) {
+  if (req.path === "/spotify-redirect" || req.path === "/login") {
     console.log(`\tskipping cookie parsing`);
     // client path - skipping cookie parsing because the user is in the middle of the auth flow and the session cookie has yet to be set by the server
 
@@ -46,17 +41,8 @@ async function validateSession(req, res, next) {
   }
 
   // Parse cookies
-  const cookies = req.headers.cookie;
-  if (!cookies) {
-    console.log("no cookies: redirecting user to login");
-    return res.redirect(loginPath);
-  }
-  const cookieObj = Object.fromEntries(
-    cookies.split("; ").map((cookie) => cookie.split("="))
-  );
+  const sessionId = req.cookies.sessionId;
 
-  // Parse sessionId
-  const sessionId = cookieObj.sessionId;
   if (!sessionId) {
     console.log("no sessionId: redirecting user to login");
     return res.redirect(loginPath);
@@ -72,7 +58,7 @@ async function validateSession(req, res, next) {
     next();
   } catch (error) {
     console.error("Session validation error:", error);
-    next(error); // Pass the error to Express’s error handler
+    res.status(500).send();
   }
 }
 

@@ -17,14 +17,12 @@ const corsOptions = {
   allowedHeaders: ['Content-Type'], // Specify allowed headers
 };
 
-// Use cookie-parser middleware
 app.use(cookieParser(process.env.COOKIE_SIGNING_KEY));
-
 app.use(cors(corsOptions));
 app.use(morgan("dev"));
-
 app.use(express.json());
 app.use(validateSession);
 app.use("/login", loginRouter)
 app.use("/spotify-redirect", spotifyRedirectRouter)
+
 module.exports = app;
